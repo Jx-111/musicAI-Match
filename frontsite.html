@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MelodyMatch - AI音乐推荐</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --gray: #a0a0c0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--dark) 0%, #16213e 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo i {
+            font-size: 2rem;
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 40px 0;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero h1 {
+            font-size: 2.8rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--gray);
+            margin-bottom: 30px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card h2 {
+            margin-bottom: 20px;
+            color: var(--light);
+            font-size: 1.8rem;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--gray);
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--light);
+            font-size: 1rem;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 2px rgba(37, 117, 252, 0.3);
+        }
+        
+        .examples {
+            margin-top: 15px;
+        }
+        
+        .examples h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            color: var(--gray);
+        }
+        
+        .example-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .example-tag {
+            background: rgba(106, 147, 255, 0.2);
+            border: 1px solid rgba(106, 147, 255, 0.5);
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .example-tag:hover {
+            background: rgba(106, 147, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .btn {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(37, 117, 252, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 30px 0;
+        }
+        
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .song-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .song-cover {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        
+        .play-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .song-card:hover .play-btn {
+            opacity: 1;
+        }
+        
+        .song-info {
+            padding: 15px;
+        }
+        
+        .song-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .song-artist {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .song-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .song-tag {
+            background: rgba(106, 147, 255, 0.2);
+            border-radius: 10px;
+            padding: 3px 8px;
+            font-size: 0.7rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--gray);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        .match-reason {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 10px;
+            font-style: italic;
+        }
+        
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+        
+        .status-dot.offline {
+            background: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-music"></i>
+                <span>MelodyMatch</span>
+            </div>
+            <div class="api-status">
+                <div class="status-dot" id="api-status"></div>
+                <span id="api-status-text">API状态: 检查中...</span>
+            </div>
+        </header>
+        
+        <section class="hero">
+            <h1>AI音乐推荐系统</h1>
+            <p>使用先进的AI技术，根据你的心情、场景和偏好，推荐最适合你的歌曲</p>
+        </section>
+        
+        <div class="main-content">
+            <section class="card">
+                <h2>描述你的音乐偏好</h2>
+                <div class="input-group">
+                    <label for="preference-input">告诉我你现在的心情、场景或想听的音乐类型：</label>
+                    <textarea id="preference-input" placeholder="例如：我想听一些放松的钢琴曲，适合在雨天听..."></textarea>
+                    
+                    <div class="examples">
+                        <h3>试试这些例子：</h3>
+                        <div class="example-tags">
+                            <div class="example-tag" data-text="工作学习时能帮助专注的纯音乐">专注工作</div>
+                            <div class="example-tag" data-text="充满活力的流行歌曲，适合运动时听">运动活力</div>
+                            <div class="example-tag" data-text="舒缓的爵士乐，适合晚上放松">夜晚放松</div>
+                            <div class="example-tag" data-text="经典的摇滚歌曲，有力量的吉他">经典摇滚</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="recommend-btn" class="btn">获取音乐推荐</button>
+            </section>
+            
+            <section class="card">
+                <h2>推荐结果</h2>
+                
+                <div class="loader" id="loader">
+                    <div class="loader-spinner"></div>
+                    <p>AI正在分析你的偏好并推荐歌曲...</p>
+                </div>
+                
+                <div class="empty-state" id="empty-state">
+                    <i class="fas fa-music"></i>
+                    <p>描述你的音乐偏好，AI将为你推荐合适的歌曲</p>
+                </div>
+                
+                <div class="results-container" id="results-container">
+                    <!-- 歌曲推荐结果将在这里动态生成 -->
+                </div>
+            </section>
+        </div>
+        
+        <footer>
+            <p>MelodyMatch AI &copy; 2023 | MVP版本 - 模拟数据演示</p>
+        </footer>
+    </div>
+
+    <script>
+        // 模拟后端API - 在实际项目中，这里会替换为真实的API调用
+        class MockBackendAPI {
+            constructor() {
+                this.baseUrl = "https://jsonplaceholder.typicode.com"; // 模拟API端点
+                this.songDatabase = this.initializeSongDatabase();
+            }
+            
+            initializeSongDatabase() {
+                return [
+                    {
+                        id: 1,
+                        title: "月光奏鸣曲",
+                        artist: "贝多芬",
+                        tags: ["古典", "钢琴", "舒缓"],
+                        matchReason: "根据您对放松钢琴曲的偏好推荐"
+                    },
+                    {
+                        id: 2,
+                        title: "Rainy Day",
+                        artist: "Dreamscape",
+                        tags: ["轻音乐", "氛围", "雨天"],
+                        matchReason: "适合雨天聆听的放松音乐"
+                    },
+                    {
+                        id: 3,
+                        title: "Serenity",
+                        artist: "Ethereal Waves",
+                        tags: ["冥想", "平静", "器乐"],
+                        matchReason: "帮助放松心灵的纯音乐"
+                    },
+                    {
+                        id: 4,
+                        title: "Ocean Breeze",
+                        artist: "Coastal Sounds",
+                        tags: ["自然", "海浪", "放松"],
+                        matchReason: "带来海边宁静感受的音乐"
+                    },
+                    {
+                        id: 5,
+                        title: "Twilight",
+                        artist: "Nocturnal Harmony",
+                        tags: ["爵士", "夜晚", "萨克斯"],
+                        matchReason: "适合夜晚放松的爵士乐"
+                    },
+                    {
+                        id: 6,
+                        title: "Mountain Stream",
+                        artist: "Nature's Melody",
+                        tags: ["自然", "水流", "平静"],
+                        matchReason: "模拟自然声音的放松音乐"
+                    },
+                    {
+                        id: 7,
+                        title: "Energy Boost",
+                        artist: "Power Beats",
+                        tags: ["电子", "活力", "运动"],
+                        matchReason: "充满活力的电子音乐，适合运动"
+                    },
+                    {
+                        id: 8,
+                        title: "Run Free",
+                        artist: "Urban Rhythms",
+                        tags: ["流行", "励志", "快节奏"],
+                        matchReason: "快节奏流行歌曲，激发运动能量"
+                    },
+                    {
+                        id: 9,
+                        title: "Thunder Road",
+                        artist: "Classic Rockers",
+                        tags: ["摇滚", "经典", "吉他"],
+                        matchReason: "经典摇滚歌曲，充满力量的吉他"
+                    },
+                    {
+                        id: 10,
+                        title: "Rebel Heart",
+                        artist: "Modern Legends",
+                        tags: ["硬摇滚", "激情", "现场"],
+                        matchReason: "充满激情的硬摇滚歌曲"
+                    }
+                ];
+            }
+            
+            // 模拟API调用延迟
+            async simulateAPICall(delay = 1500) {
+                return new Promise(resolve => {
+                    setTimeout(resolve, delay);
+                });
+            }
+            
+            // 根据用户偏好推荐歌曲
+            async getRecommendations(preference) {
+                await this.simulateAPICall();
+                
+                // 简单的关键词匹配算法
+                const keywords = preference.toLowerCase().split(/\s+/);
+                let matchedSongs = [];
+                
+                // 匹配逻辑
+                if (keywords.some(k => k.includes("工作") || k.includes("学习") || k.includes("专注"))) {
+                    matchedSongs = this.songDatabase.filter(song => 
+                        song.tags.some(tag => 
+                            tag.includes("平静") || tag.includes("器乐") || tag.includes("古典")
+                        )
+                    );
+                } else if (keywords.some(k => k.includes("运动") || k.includes("活力") || k.includes("健身"))) {
+                    matchedSongs = this.songDatabase.filter(song => 
+                        song.tags.some(tag => 
+                            tag.includes("活力") || tag.includes("运动") || tag.includes("快节奏")
+                        )
+                    );
+                } else if (keywords.some(k => k.includes("摇滚") || k.includes("吉他") || k.includes("金属"))) {
+                    matchedSongs = this.songDatabase.filter(song => 
+                        song.tags.some(tag => 
+                            tag.includes("摇滚") || tag.includes("吉他") || tag.includes("金属")
+                        )
+                    );
+                } else if (keywords.some(k => k.includes("爵士") || k.includes("夜晚") || k.includes("放松"))) {
+                    matchedSongs = this.songDatabase.filter(song => 
+                        song.tags.some(tag => 
+                            tag.includes("爵士") || tag.includes("夜晚") || tag.includes("放松")
+                        )
+                    );
+                } else {
+                    // 默认返回随机推荐
+                    matchedSongs = [...this.songDatabase]
+                        .sort(() => 0.5 - Math.random())
+                        .slice(0, 4);
+                }
+                
+                return {
+                    success: true,
+                    data: matchedSongs.slice(0, 6), // 最多返回6首
+                    message: `根据您的描述"${preference}"，为您找到${matchedSongs.length}首相关歌曲`
+                };
+            }
+            
+            // 检查API状态
+            async checkStatus() {
+                try {
+                    await fetch(`${this.baseUrl}/posts/1`);
+                    return { online: true, message: "API连接正常" };
+                } catch (error) {
+                    return { online: false, message: "API模拟模式 - 使用本地数据" };
+                }
+            }
+        }
+
+        // 前端应用逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            const preferenceInput = document.getElementById('preference-input');
+            const recommendBtn = document.getElementById('recommend-btn');
+            const loader = document.getElementById('loader');
+            const emptyState = document.getElementById('empty-state');
+            const resultsContainer = document.getElementById('results-container');
+            const exampleTags = document.querySelectorAll('.example-tag');
+            const apiStatus = document.getElementById('api-status');
+            const apiStatusText = document.getElementById('api-status-text');
+            
+            const api = new MockBackendAPI();
+            
+            // 初始化API状态检查
+            api.checkStatus().then(status => {
+                apiStatus.className = status.online ? "status-dot" : "status-dot offline";
+                apiStatusText.textContent = `API状态: ${status.message}`;
+            });
+            
+            // 示例标签点击事件
+            exampleTags.forEach(tag => {
+                tag.addEventListener('click', function() {
+                    preferenceInput.value = this.getAttribute('data-text');
+                });
+            });
+            
+            // 获取推荐按钮点击事件
+            recommendBtn.addEventListener('click', async function() {
+                const preference = preferenceInput.value.trim();
+                
+                if (!preference) {
+                    alert('请输入你的音乐偏好描述');
+                    return;
+                }
+                
+                // 显示加载状态
+                loader.style.display = 'block';
+                emptyState.style.display = 'none';
+                resultsContainer.innerHTML = '';
+                
+                try {
+                    // 调用API获取推荐
+                    const response = await api.getRecommendations(preference);
+                    
+                    // 隐藏加载状态
+                    loader.style.display = 'none';
+                    
+                    // 显示推荐结果
+                    if (response.success && response.data.length > 0) {
+                        displayRecommendations(response.data, response.message);
+                    } else {
+                        showEmptyState('没有找到匹配的歌曲，请尝试更具体的描述');
+                    }
+                } catch (error) {
+                    loader.style.display = 'none';
+                    showEmptyState('获取推荐时出现错误，请稍后重试');
+                    console.error('API调用错误:', error);
+                }
+            });
+            
+            // 显示推荐结果
+            function displayRecommendations(recommendations, message) {
+                resultsContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; margin-bottom: 15px; color: var(--gray);">
+                        <i class="fas fa-info-circle"></i> ${message}
+                    </div>
+                    ${recommendations.map(song => `
+                        <div class="song-card">
+                            <div class="song-cover">
+                                <i class="fas fa-music"></i>
+                                <div class="play-btn">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                            </div>
+                            <div class="song-info">
+                                <div class="song-title">${song.title}</div>
+                                <div class="song-artist">${song.artist}</div>
+                                <div class="song-tags">
+                                    ${song.tags.map(tag => `<span class="song-tag">${tag}</span>`).join('')}
+                                </div>
+                                <div class="match-reason">${song.matchReason}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            }
+            
+            // 显示空状态
+            function showEmptyState(message) {
+                emptyState.style.display = 'block';
+                emptyState.innerHTML = `
+                    <i class="fas fa-search"></i>
+                    <p>${message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
